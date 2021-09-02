@@ -3,6 +3,7 @@ package compo
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/maxence-charriere/go-app/v8/pkg/app"
@@ -56,6 +57,7 @@ func (c *List) Render() app.UI {
 					app.Div().Class("flex items-center").Body(
 						app.Button().Class("ui button").Body(app.Text("Copy")).OnClick(c.onCopy(c.fileList[i])),
 						app.A().Href(fmt.Sprintf("/config/%s", c.fileList[i])).Class("ui button").Body(app.Text("Edit")),
+						app.Button().Class("ui button").Body(app.Text("Delete")).OnClick(c.onDelete(c.fileList[i])),
 					),
 				)
 			}),
@@ -74,5 +76,25 @@ func (c *List) onCopy(fileName string) app.EventHandler {
 		uri := fmt.Sprintf("%s://%s/api/auth/config/%s?token=%s", ctx.Page.URL().Scheme, ctx.Page.URL().Host, fileName, token)
 
 		app.Window().Get("navigator").Get("clipboard").Call("writeText", uri)
+	}
+}
+
+func (c *List) onDelete(fileName string) app.EventHandler {
+	return func(ctx app.Context, e app.Event) {
+		var urlReg = regexp.MustCompile(`(\d+)\.yaml`)
+		params := urlReg.FindStringSubmatch(fileName)
+
+		resp, err := client.R().
+			SetHeader("Accept", "application/x-yaml").
+			Delete(fmt.Sprintf("api/auth/config/%s", params[1]))
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if resp.StatusCode() == http.StatusOK {
+			c.Update()
+		}
 	}
 }

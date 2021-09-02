@@ -55,6 +55,7 @@ func makeGroupApi(r *gin.Engine) {
 			auth.GET("/config", getConfigList)
 			auth.GET("/config/:file", getConfig)
 			auth.POST("/config/:file", setConfig)
+			auth.DELETE("/config/:file", delConfig)
 		}
 	}
 }
@@ -158,4 +159,21 @@ func setConfig(c *gin.Context) {
 
 		c.YAML(http.StatusOK, conf)
 	}
+}
+
+func delConfig(c *gin.Context) {
+	fileName := c.Param("file")
+
+	var err error
+
+	if ExistsFile(fileName) {
+		if err = os.Remove(fmt.Sprintf("configs/%s.yaml", fileName)); err != nil {
+			log.Println(err)
+			c.String(http.StatusTeapot, err.Error())
+		}
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	c.String(http.StatusTeapot, "file not exist")
 }
